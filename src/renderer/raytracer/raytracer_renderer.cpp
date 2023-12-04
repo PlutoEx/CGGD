@@ -32,9 +32,6 @@ void cg::renderer::ray_tracing_renderer::init()
 	raytracer->set_render_target(render_target);
 	raytracer->set_vertex_buffers(model->get_vertex_buffers());
 	raytracer->set_index_buffers(model->get_index_buffers());
-
-
-
 }
 
 void cg::renderer::ray_tracing_renderer::destroy() {}
@@ -49,11 +46,12 @@ void cg::renderer::ray_tracing_renderer::render()
 		return payload;
 	};
 	std::random_device random_device;
-	std::mt19937 random_generator(random_device);
+	std::mt19937 random_generator(random_device());
 	std::uniform_real_distribution<float> uni_dist(-1.f, 1.f);
 	raytracer->closest_hit_shader = [&](const ray& ray, payload& payload,
 									   const triangle<cg::vertex>& triangle,
 									   size_t depth){
+
 		float3 position = ray.position + ray.direction * payload.t;
 		float3 normal = payload.bary.x * triangle.na +
 						payload.bary.y * triangle.nb +
