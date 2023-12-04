@@ -66,7 +66,7 @@ namespace cg::renderer
 		nc = float3{vertex_c.nx, vertex_c.ny, vertex_c.nz};
 
 		ambient = float3{vertex_a.ambient_r, vertex_a.ambient_g, vertex_a.ambient_b};
-		diffuse = float3{vertex_a.diffuse_r, vertex_a.diffuse_g, vertex_a.diffuse_b};
+		diffuse = float3{vertex_a.diffuse_r, vertex_a.diffuse_g, vertex_a.diffuse_b};		diffuse = float3{vertex_a.diffuse_r, vertex_a.diffuse_g, vertex_a.diffuse_b};
 		emissive = float3{vertex_a.emissive_r, vertex_a.emissive_g, vertex_a.emissive_b};
 	}
 
@@ -151,12 +151,10 @@ namespace cg::renderer
 	inline void raytracer<VB, RT>::clear_render_target(
 			const RT& in_clear_value)
 	{
-		for (size_t i=0; i<render_target->get_number_of_elements(); i++)
-		{
+		for (size_t i=0; i<render_target->get_number_of_elements(); i++){
 			render_target->item(i) = in_clear_value;
-			history->item(i)  = float3{0.f, 0.f, 0.f};
+			history->item(i) = float3{0.f,0.f,0.f};
 		}
-
 	}
 
 	template<typename VB, typename RT>
@@ -174,13 +172,13 @@ namespace cg::renderer
 	template<typename VB, typename RT>
 	inline void raytracer<VB, RT>::build_acceleration_structure()
 	{
-		for (size_t i=0; i<index_buffers.size(); i++)
+		for(size_t i=0; i<index_buffers.size(); i++)
 		{
 			auto& index_buffer = index_buffers[i];
 			auto& vertex_buffer = vertex_buffers[i];
 			size_t index = 0;
 			aabb<VB> aabb;
-			while (index < index_buffer->get_number_of_elements())
+			while(index < index_buffer->get_number_of_elements())
 			{
 				triangle<VB> triangle(
 						vertex_buffer->item(index_buffer->item(index++)),
@@ -197,15 +195,12 @@ namespace cg::renderer
 			float3 position, float3 direction,
 			float3 right, float3 up, size_t depth, size_t accumulation_num)
 	{
-		for (size_t frame_id = 0; frame_id < accumulation_num; frame_id++)
-		{
-			std::cout << "Tracing " << frame_id << "/" << accumulation_num << " frame\n";
+		for(size_t frame_id = 0; frame_id < accumulation_num; frame_id++) {
+			std::cout<<"Tracing "<<frame_id<<"/"<<accumulation_num<<" frame\n";
 			float2 jitter = get_jitter(frame_id);
 #pragma omp parallel for
-			for (int x = 0; x < width; x++)
-			{
-				for (int y = 0; y < height; y++)
-				{
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
 					float u = (2.f * x + jitter.x) / static_cast<float>(width) - 1.f;
 					float v = (2.f * y + jitter.y) / static_cast<float>(height) - 1.f;
 					u *= static_cast<float>(width) / static_cast<float>(height);
@@ -214,10 +209,9 @@ namespace cg::renderer
 					ray primary_ray(position, ray_direction);
 					payload payload = trace_ray(primary_ray, depth);
 
-					history->item(x, y) += sqrt(payload.color.to_float3()/accumulation_num);
-					if (frame_id + 1 == accumulation_num)
-					{
-						render_target->item(x, y) = RT::from_float3(history->item(x, y));
+					history->item(x,y) += sqrt(payload.color.to_float3()/accumulation_num);
+					if (frame_id + 1 == accumulation_num){
+						render_target->item(x,y) = RT::from_float3(history->item(x,y));
 					}
 				}
 			}
@@ -228,9 +222,8 @@ namespace cg::renderer
 	inline payload raytracer<VB, RT>::trace_ray(
 			const ray& ray, size_t depth, float max_t, float min_t) const
 	{
-		if (depth == 0)
-		{
-			return miss_shader(ray);
+		if (depth == 0){
+			return  miss_shader(ray);
 		}
 		depth--;
 
@@ -238,13 +231,11 @@ namespace cg::renderer
 		closest_hit_payload.t = max_t;
 		const triangle<VB>* closest_triangle = nullptr;
 
-		for (auto& aabb: acceleration_structures)
-		{
-			if (!aabb.aabb_test(ray))
-			{
+		for (auto& aabb: acceleration_structures) {
+			if(!aabb.aabb_test(ray)){
 				continue;
 			}
-			for (auto & triangle: aabb.get_triangles())
+			for (auto& triangle: aabb.get_triangles())
 			{
 				payload payload = intersection_shader(triangle, ray);
 				if (payload.t > min_t && payload.t < closest_hit_payload.t)
@@ -257,8 +248,7 @@ namespace cg::renderer
 			}
 		}
 
-		if (closest_hit_payload.t < max_t)
-		{
+		if (closest_hit_payload.t < max_t){
 			if (closest_hit_shader)
 				return closest_hit_shader(ray, closest_hit_payload, *closest_triangle, depth);
 		}
@@ -274,7 +264,7 @@ namespace cg::renderer
 
 		float3 pvec = cross(ray.direction, triangle.ca);
 		float det = dot(triangle.ba, pvec);
-		if (det > -1e8 && det < 1e8)
+		if(det > -1e-8 && det < 1e-8)
 			return payload;
 
 		float inv_det = 1.f / det;
@@ -285,7 +275,7 @@ namespace cg::renderer
 
 		float3 qvec = cross(tvec, triangle.ba);
 		float v = dot(ray.direction, qvec) * inv_det;
-		if (v < 0.f || u + v > 1.f)
+		if(v < 0.f || u+v > 1.f)
 			return payload;
 
 		payload.t = dot(triangle.ca, qvec) * inv_det;
@@ -300,10 +290,9 @@ namespace cg::renderer
 
 		constexpr int base_x = 2;
 		int index = frame_id + 1;
-		float inv_base = 1.f/base_x;
+		float inv_base = 1.f / base_x;
 		float fraction = inv_base;
-		while (index > 0)
-		{
+		while(index > 0){
 			result.x += static_cast<float>(index % base_x) * fraction;
 			index /= base_x;
 			fraction *= inv_base;
@@ -311,24 +300,22 @@ namespace cg::renderer
 
 		constexpr int base_y = 3;
 		index = frame_id + 1;
-		inv_base = 1.f/base_y;
+		inv_base = 1.f / base_x;
 		fraction = inv_base;
-		while (index > 0)
-		{
+		while(index > 0){
 			result.y += static_cast<float>(index % base_y) * fraction;
 			index /= base_y;
 			fraction *= inv_base;
 		}
 
-		return result -0.5f;
+		return result - 0.5f;
 	}
 
 
 	template<typename VB>
 	inline void aabb<VB>::add_triangle(const triangle<VB> triangle)
 	{
-		if (triangles.empty())
-		{
+		if (triangles.empty()){
 			aabb_min = aabb_max = triangle.a;
 		}
 
@@ -359,5 +346,5 @@ namespace cg::renderer
 		float3 t_max = max(t0, t1);
 		return maxelem(t_min) <= maxelem(t_max);
 	}
-
-}// namespace cg::renderer
+}
+// namespace cg::renderer
